@@ -1,0 +1,9 @@
+{
+  "item_to_repair": "#experiencetweaks:repairable_with_amethyst",
+  "repair": [
+    {
+      "repair_material": "minecraft:amethyst_shard",
+      "amount": 20
+    }
+  ]
+}

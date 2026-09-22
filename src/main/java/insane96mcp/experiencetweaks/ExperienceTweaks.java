@@ -2,6 +2,7 @@ package insane96mcp.experiencetweaks;
 
 import com.mojang.logging.LogUtils;
 import insane96mcp.experiencetweaks.module.ETModules;
+import insane96mcp.experiencetweaks.module.anvil.anvilrepair.AnvilBetterRepair;
 import insane96mcp.experiencetweaks.module.anvil.anvilrepair.AnvilRepairReloadListener;
 import insane96mcp.experiencetweaks.network.NetworkHandler;
 import insane96mcp.insanelib.setup.ILModConfig;
@@ -27,6 +28,7 @@ public class ExperienceTweaks {
 
         eventBus.addListener(NetworkHandler::register);
         NeoForge.EVENT_BUS.addListener((AddReloadListenerEvent event) -> event.addListener(AnvilRepairReloadListener.INSTANCE));
+        AnvilBetterRepair.RECIPE_SERIALIZERS.register(eventBus);
     }
 
     public static ResourceLocation location(String path) {

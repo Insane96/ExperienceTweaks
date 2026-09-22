@@ -1,5 +1,5 @@
 {
-  "item_to_repair": "minecraft:copper_chestplate",
+  "item_to_repair": "insanesurvivaloverhaul:copper_chestplate",
   "repair": [
     {
       "repair_material": "minecraft:copper_ingot",

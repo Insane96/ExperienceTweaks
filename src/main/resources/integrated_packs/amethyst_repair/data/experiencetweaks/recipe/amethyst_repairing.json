@@ -1,0 +1,7 @@
+{
+  "type": "experiencetweaks:crafting_special_repair",
+  "category": "misc",
+  "item_to_repair": "#experiencetweaks:repairable_with_amethyst",
+  "repair_material": "minecraft:amethyst_shard",
+  "amount": 30
+}

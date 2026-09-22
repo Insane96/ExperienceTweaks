@@ -1,5 +1,5 @@
 {
-  "item_to_repair": "minecraft:copper_helmet",
+  "item_to_repair": "insanesurvivaloverhaul:copper_helmet",
   "repair": [
     {
       "repair_material": "minecraft:copper_ingot",

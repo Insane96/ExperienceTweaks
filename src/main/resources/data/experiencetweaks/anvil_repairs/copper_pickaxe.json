@@ -1,5 +1,5 @@
 {
-  "item_to_repair": "minecraft:copper_pickaxe",
+  "item_to_repair": "insanesurvivaloverhaul:copper_pickaxe",
   "repair": [
     {
       "repair_material": "minecraft:copper_ingot",

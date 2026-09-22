@@ -1,5 +1,5 @@
 {
-  "item_to_repair": "minecraft:copper_boots",
+  "item_to_repair": "insanesurvivaloverhaul:copper_boots",
   "repair": [
     {
       "repair_material": "minecraft:copper_ingot",
