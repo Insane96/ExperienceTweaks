@@ -1,3 +1,6 @@
+# 1.1.4.1
+* Fixed crash with latest InsaneLib
+
 # 1.1.4.0
 * Anvil Better Repair: added Amethyst Repair option, a separate data pack (toggleable on its own) that lets you repair damageable metal tools, weapons and armor with Amethyst Shards, either in the crafting grid (30 shards for a full repair) or in an anvil (20 shards for a full repair)
 * Fixed copper equipment having wrong ID with ISO

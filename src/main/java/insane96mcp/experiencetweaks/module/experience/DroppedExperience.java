@@ -8,7 +8,7 @@ import insane96mcp.insanelib.core.feature.LoadFeature;
 import insane96mcp.insanelib.core.feature.Module;
 import insane96mcp.insanelib.core.feature.config.Config;
 import insane96mcp.insanelib.core.feature.config.MinMaxConfig;
-import insane96mcp.insanelib.module.base.TagsFeature;
+import insane96mcp.insanelib.module.base.NbtTags;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -126,9 +126,9 @@ public class DroppedExperience extends Feature {
 			return;
 
 		if (mob.getSpawnType() == MobSpawnType.SPAWNER)
-			TagsFeature.setExperienceMultiplier(mobs$multiplierSpawner, mob);
+			NbtTags.setExperienceMultiplier(mobs$multiplierSpawner, mob);
 		else
-			TagsFeature.setExperienceMultiplier(mobs$multiplierNatural, mob);
+			NbtTags.setExperienceMultiplier(mobs$multiplierNatural, mob);
 	}
 
 	//Run before smartness
