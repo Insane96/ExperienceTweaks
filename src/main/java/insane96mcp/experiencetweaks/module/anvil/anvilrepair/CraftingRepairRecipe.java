@@ -5,7 +5,6 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import insane96mcp.insanelib.data.ObjTag;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -24,15 +23,21 @@ import net.minecraft.world.level.Level;
  * Amethyst Repair data pack, but not tied to it — any datapack can add its own recipe json.
  */
 public class CraftingRepairRecipe extends CustomRecipe {
+    private final CraftingBookCategory category;
     private final ObjTag<Item> itemToRepair;
     private final ObjTag<Item> repairMaterial;
     private final float amountRequired;
 
     public CraftingRepairRecipe(CraftingBookCategory category, ObjTag<Item> itemToRepair, ObjTag<Item> repairMaterial, float amountRequired) {
-        super(category);
+        this.category = category;
         this.itemToRepair = itemToRepair;
         this.repairMaterial = repairMaterial;
         this.amountRequired = amountRequired;
+    }
+
+    @Override
+    public CraftingBookCategory category() {
+        return this.category;
     }
 
     public ObjTag<Item> getItemToRepair() {
@@ -72,7 +77,7 @@ public class CraftingRepairRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
+    public ItemStack assemble(CraftingInput input) {
         ItemStack repairableItem = null;
         int materialSlots = 0;
         for (int i = 0; i < input.size(); i++) {
@@ -105,7 +110,7 @@ public class CraftingRepairRecipe extends CustomRecipe {
      */
     @Override
     public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
-        NonNullList<ItemStack> remainingItems = super.getRemainingItems(input);
+        NonNullList<ItemStack> remainingItems = CraftingRecipe.defaultCraftingReminder(input);
         ItemStack repairableItem = null;
         int materialSlots = 0;
         for (int i = 0; i < input.size(); i++) {
@@ -143,49 +148,30 @@ public class CraftingRepairRecipe extends CustomRecipe {
         return (int) Math.min(materialSlots, Math.ceil(stack.getDamageValue() / this.getRepairPerMaterial(stack)));
     }
 
-    /**
-     * Used to determine if this recipe can fit in a grid of the given width/height
-     */
     @Override
-    public boolean canCraftInDimensions(int width, int height) {
-        return width * height >= 2;
-    }
-
-    @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<CraftingRepairRecipe> getSerializer() {
         return AnvilBetterRepair.CRAFTING_REPAIR_RECIPE_SERIALIZER.get();
     }
 
-    public static class Serializer implements RecipeSerializer<CraftingRepairRecipe> {
-        private static final Codec<ObjTag<Item>> OBJ_TAG_CODEC = Codec.STRING.comapFlatMap(
-                s -> DataResult.success(ObjTag.of(s, Registries.ITEM)),
-                ObjTag::toSerializedString
-        );
-        private static final StreamCodec<RegistryFriendlyByteBuf, ObjTag<Item>> OBJ_TAG_STREAM_CODEC =
-                ByteBufCodecs.STRING_UTF8.<ObjTag<Item>>map(s -> ObjTag.of(s, Registries.ITEM), ObjTag::toSerializedString).cast();
+    private static final Codec<ObjTag<Item>> OBJ_TAG_CODEC = Codec.STRING.comapFlatMap(
+        s -> DataResult.success(ObjTag.of(s, Registries.ITEM)),
+        ObjTag::toSerializedString
+    );
+    private static final StreamCodec<RegistryFriendlyByteBuf, ObjTag<Item>> OBJ_TAG_STREAM_CODEC =
+        ByteBufCodecs.STRING_UTF8.<ObjTag<Item>>map(s -> ObjTag.of(s, Registries.ITEM), ObjTag::toSerializedString).cast();
 
-        private static final MapCodec<CraftingRepairRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                        CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(CraftingRecipe::category),
-                        OBJ_TAG_CODEC.fieldOf("item_to_repair").forGetter(CraftingRepairRecipe::getItemToRepair),
-                        OBJ_TAG_CODEC.fieldOf("repair_material").forGetter(CraftingRepairRecipe::getRepairMaterial),
-                        ExtraCodecs.POSITIVE_FLOAT.fieldOf("amount").forGetter(CraftingRepairRecipe::getAmountRequired)
-                ).apply(instance, CraftingRepairRecipe::new));
-        private static final StreamCodec<RegistryFriendlyByteBuf, CraftingRepairRecipe> STREAM_CODEC = StreamCodec.composite(
-                CraftingBookCategory.STREAM_CODEC, CraftingRecipe::category,
-                OBJ_TAG_STREAM_CODEC, CraftingRepairRecipe::getItemToRepair,
-                OBJ_TAG_STREAM_CODEC, CraftingRepairRecipe::getRepairMaterial,
-                ByteBufCodecs.FLOAT, CraftingRepairRecipe::getAmountRequired,
-                CraftingRepairRecipe::new
-        );
-
-        @Override
-        public MapCodec<CraftingRepairRecipe> codec() {
-            return CODEC;
-        }
-
-        @Override
-        public StreamCodec<RegistryFriendlyByteBuf, CraftingRepairRecipe> streamCodec() {
-            return STREAM_CODEC;
-        }
-    }
+    private static final MapCodec<CraftingRepairRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(CraftingRecipe::category),
+            OBJ_TAG_CODEC.fieldOf("item_to_repair").forGetter(CraftingRepairRecipe::getItemToRepair),
+            OBJ_TAG_CODEC.fieldOf("repair_material").forGetter(CraftingRepairRecipe::getRepairMaterial),
+            ExtraCodecs.POSITIVE_FLOAT.fieldOf("amount").forGetter(CraftingRepairRecipe::getAmountRequired)
+        ).apply(instance, CraftingRepairRecipe::new));
+    private static final StreamCodec<RegistryFriendlyByteBuf, CraftingRepairRecipe> STREAM_CODEC = StreamCodec.composite(
+        CraftingBookCategory.STREAM_CODEC, CraftingRecipe::category,
+        OBJ_TAG_STREAM_CODEC, CraftingRepairRecipe::getItemToRepair,
+        OBJ_TAG_STREAM_CODEC, CraftingRepairRecipe::getRepairMaterial,
+        ByteBufCodecs.FLOAT, CraftingRepairRecipe::getAmountRequired,
+        CraftingRepairRecipe::new
+    );
+    public static final RecipeSerializer<CraftingRepairRecipe> SERIALIZER = new RecipeSerializer<>(CODEC, STREAM_CODEC);
 }

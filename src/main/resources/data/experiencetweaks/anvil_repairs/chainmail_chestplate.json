@@ -2,7 +2,7 @@
   "item_to_repair": "minecraft:chainmail_chestplate",
   "repair": [
     {
-      "repair_material": "minecraft:chain",
+      "repair_material": "minecraft:iron_chain",
       "amount": 3.75
     }
   ]

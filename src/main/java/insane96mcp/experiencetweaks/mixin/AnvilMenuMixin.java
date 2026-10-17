@@ -1,27 +1,32 @@
 package insane96mcp.experiencetweaks.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import insane96mcp.experiencetweaks.module.anvil.AnvilHandler;
-import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(AnvilMenu.class)
 public class AnvilMenuMixin {
-	// A canceled AnvilUpdateEvent resets the cost to 0, set it back when AnvilHandler canceled it for being too expensive so the "Too Expensive" label shows up
-	@WrapOperation(method = "createResult", at = @At(value = "INVOKE", target = "Lnet/neoforged/neoforge/common/CommonHooks;onAnvilChange(Lnet/minecraft/world/inventory/AnvilMenu;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/Container;Ljava/lang/String;JLnet/minecraft/world/entity/player/Player;)Z"))
-	private boolean experiencetweaks$keepTooExpensiveCost(AnvilMenu menu, ItemStack left, ItemStack right, Container outputSlot, String name, long baseCost, Player player, Operation<Boolean> original) {
-		AnvilHandler.TOO_EXPENSIVE_COST.remove();
-		boolean result = original.call(menu, left, right, outputSlot, name, baseCost, player);
-		Integer tooExpensiveCost = AnvilHandler.TOO_EXPENSIVE_COST.get();
-		if (tooExpensiveCost != null) {
-			AnvilHandler.TOO_EXPENSIVE_COST.remove();
-			menu.setMaximumCost(tooExpensiveCost);
-		}
-		return result;
+	// Cleared before AnvilCraftEvent.Pre is fired, where AnvilDegradation and AnvilRenaming set it
+	@Inject(method = "onTake", at = @At("HEAD"))
+	private void experiencetweaks$clearBreakChance(Player player, ItemStack carried, CallbackInfo ci) {
+		AnvilHandler.BREAK_CHANCE.remove();
+	}
+
+	// NeoForge no longer has an event to change the anvil break chance, the vanilla chance is in the lambda passed to ContainerLevelAccess#execute
+	@ModifyExpressionValue(method = "lambda$onTake$0", at = @At(value = "CONSTANT", args = "floatValue=0.12F"))
+	private static float experiencetweaks$breakChance(float original) {
+		Float breakChance = AnvilHandler.BREAK_CHANCE.get();
+		return breakChance != null ? breakChance : original;
+	}
+
+	@Inject(method = "onTake", at = @At("RETURN"))
+	private void experiencetweaks$resetBreakChance(Player player, ItemStack carried, CallbackInfo ci) {
+		AnvilHandler.BREAK_CHANCE.remove();
 	}
 }

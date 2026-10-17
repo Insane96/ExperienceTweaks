@@ -4,8 +4,9 @@ import insane96mcp.experiencetweaks.module.ETModules;
 import insane96mcp.insanelib.core.feature.Feature;
 import insane96mcp.insanelib.core.feature.LoadFeature;
 import insane96mcp.insanelib.core.feature.config.Config;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -86,7 +87,7 @@ public class PlayerExperience extends Feature {
 	public static int getExperienceOnDeath(Player player, int vanillaExperience, boolean ignoreGlobalXPMultiplier) {
 		if (!isEnabled(PlayerExperience.class)
 				|| (droppedExperienceOnDeath < 0 && !DroppedExperience.isEnabled(DroppedExperience.class))
-				|| player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)
+				|| player.level() instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.KEEP_INVENTORY)
 				|| player.isSpectator())
 			return -1;
 

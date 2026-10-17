@@ -24,8 +24,8 @@ public class AnvilBetterRepair extends Feature {
      * the Amethyst Repair data pack, but any datapack can add its own recipe json under
      * {@code data/<modid>/recipe/} with {@code "type": "experiencetweaks:crafting_special_repair"}.
      */
-    public static final DeferredHolder<RecipeSerializer<?>, CraftingRepairRecipe.Serializer> CRAFTING_REPAIR_RECIPE_SERIALIZER =
-            RECIPE_SERIALIZERS.register("crafting_special_repair", CraftingRepairRecipe.Serializer::new);
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<CraftingRepairRecipe>> CRAFTING_REPAIR_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("crafting_special_repair", () -> CraftingRepairRecipe.SERIALIZER);
 
     @Config(description = "Enables a data pack that lets you repair damageable metal tools, weapons and armor with Amethyst Shards, either in the crafting grid or in an anvil. The amounts needed for a full repair are set in the data pack itself (data/experiencetweaks/anvil_repairs/amethyst_repair.json for the anvil, data/experiencetweaks/recipe/amethyst_repairing.json for the crafting grid).")
     public static Boolean amethystRepair = true;

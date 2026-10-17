@@ -2,7 +2,7 @@
   "item_to_repair": "minecraft:turtle_helmet",
   "repair": [
     {
-      "repair_material": "minecraft:scute",
+      "repair_material": "minecraft:turtle_scute",
       "amount": 3.75
     }
   ]

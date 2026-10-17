@@ -1,0 +1,14 @@
+{
+  "item_to_repair": "minecraft:iron_spear",
+  "repair": [
+    {
+      "repair_material": "minecraft:iron_ingot",
+      "amount": 0.75
+    },
+    {
+      "repair_material": "minecraft:iron_nugget",
+      "amount": 6,
+      "cost_multiplier": 9
+    }
+  ]
+}

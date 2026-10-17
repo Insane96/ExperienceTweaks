@@ -12,16 +12,17 @@ import org.spongepowered.asm.mixin.Mixin;
 public class ExperienceOrbMixin {
 	// Apply the global multiplier before the amount is split into orbs, otherwise new orbs could merge into already multiplied ones
 	// (ExperienceOrb#tryMergeToExisting compares the existing orb's value with the raw amount) and skip the multiplier
-	@WrapMethod(method = "award")
-	private static void experiencetweaks$applyGlobalMultiplierOnAward(ServerLevel level, Vec3 pos, int amount, Operation<Void> original) {
+	// ExperienceOrb#award calls this method too
+	@WrapMethod(method = "awardWithDirection")
+	private static void experiencetweaks$applyGlobalMultiplierOnAward(ServerLevel level, Vec3 pos, Vec3 roughDirection, int amount, Operation<Void> original) {
 		if (!DroppedExperience.isGlobalMultiplierActive() || DroppedExperience.awardingMultipliedExperience) {
-			original.call(level, pos, amount);
+			original.call(level, pos, roughDirection, amount);
 			return;
 		}
 
 		DroppedExperience.awardingMultipliedExperience = true;
 		try {
-			original.call(level, pos, DroppedExperience.applyGlobalMultiplier(amount, level.getRandom()));
+			original.call(level, pos, roughDirection, DroppedExperience.applyGlobalMultiplier(amount, level.getRandom()));
 		}
 		finally {
 			DroppedExperience.awardingMultipliedExperience = false;

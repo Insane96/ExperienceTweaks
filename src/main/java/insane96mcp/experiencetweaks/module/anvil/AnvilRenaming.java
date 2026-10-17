@@ -7,7 +7,7 @@ import insane96mcp.insanelib.core.feature.config.Config;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.AnvilRepairEvent;
+import net.neoforged.neoforge.event.entity.player.AnvilCraftEvent;
 
 @LoadFeature(module = ETModules.ANVIL, description = "Removes the XP cost for renaming items and prevents anvil degradation when only renaming.")
 public class AnvilRenaming extends Feature {
@@ -23,10 +23,10 @@ public class AnvilRenaming extends Feature {
 
 	//Run after AnvilDegradation, otherwise its break chance overrides this one
 	@SubscribeEvent(priority = EventPriority.LOW)
-	public void onAnvilRepair(AnvilRepairEvent event) {
+	public void onAnvilCraft(AnvilCraftEvent.Pre event) {
 		if (!this.isEnabled() || !noBreak)
 			return;
 		if (event.getRight().isEmpty() && ItemStack.isSameItem(event.getLeft(), event.getOutput()))
-			event.setBreakChance(0);
+			AnvilHandler.BREAK_CHANCE.set(0f);
 	}
 }

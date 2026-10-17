@@ -1,0 +1,9 @@
+{
+  "item_to_repair": "minecraft:diamond_spear",
+  "repair": [
+    {
+      "repair_material": "minecraft:diamond",
+      "amount": 0.75
+    }
+  ]
+}

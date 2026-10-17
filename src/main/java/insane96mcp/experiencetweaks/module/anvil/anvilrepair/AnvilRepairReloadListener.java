@@ -6,9 +6,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import insane96mcp.experiencetweaks.ExperienceTweaks;
 import insane96mcp.experiencetweaks.network.message.AnvilRepairSyncMessage;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -19,10 +21,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @EventBusSubscriber(modid = ExperienceTweaks.MOD_ID)
-public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener {
+public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener<JsonElement> {
     // Always replaced with a new unmodifiable map instead of being modified in place, since in singleplayer the client
     // (on sync) and the integrated server share this field from different threads
-    public static volatile Map<ResourceLocation, AnvilRepair> REPAIRS = Map.of();
+    public static volatile Map<Identifier, AnvilRepair> REPAIRS = Map.of();
     public static final AnvilRepairReloadListener INSTANCE;
     private static final Gson GSON = new GsonBuilder().create();
 
@@ -31,12 +33,12 @@ public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener 
     }
 
     public AnvilRepairReloadListener() {
-        super(GSON, "anvil_repairs");
+        super(ExtraCodecs.JSON, FileToIdConverter.json("anvil_repairs"));
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profilerFiller) {
-        HashMap<ResourceLocation, AnvilRepair> repairs = new HashMap<>();
+    protected void apply(Map<Identifier, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profilerFiller) {
+        HashMap<Identifier, AnvilRepair> repairs = new HashMap<>();
         for (var entry : map.entrySet()) {
             try {
                 AnvilRepair anvilRepair = GSON.fromJson(entry.getValue(), AnvilRepair.class);
@@ -53,7 +55,7 @@ public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener 
         ExperienceTweaks.LOGGER.info("Loaded {} Anvil Repairs", REPAIRS.size());
     }
 
-    public static void setRepairs(Map<ResourceLocation, AnvilRepair> repairs) {
+    public static void setRepairs(Map<Identifier, AnvilRepair> repairs) {
         // Not Map.copyOf, to keep a stable iteration order between runs (the first matching repair is used)
         REPAIRS = Collections.unmodifiableMap(new HashMap<>(repairs));
     }
@@ -66,10 +68,5 @@ public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener 
         else {
             AnvilRepairSyncMessage.sync(REPAIRS, event.getPlayer());
         }
-    }
-
-    @Override
-    public String getName() {
-        return "Anvil Repair Reload Listener";
     }
 }

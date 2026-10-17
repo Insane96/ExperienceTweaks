@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.AnvilBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.AnvilRepairEvent;
+import net.neoforged.neoforge.event.entity.player.AnvilCraftEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 @LoadFeature(module = ETModules.ANVIL, description = "Changes the chance for anvils to degrade on use and allows repairing anvils with items in the experiencetweaks:repairs_anvil item tag.")
@@ -33,11 +33,11 @@ public class AnvilDegradation extends Feature {
 	public static Boolean fixAnvils = true;
 
 	@SubscribeEvent
-	public void onAnvilRepair(AnvilRepairEvent event) {
+	public void onAnvilCraft(AnvilCraftEvent.Pre event) {
 		if (!this.isEnabled())
 			return;
 
-		event.setBreakChance(degradationChance.floatValue());
+		AnvilHandler.BREAK_CHANCE.set(degradationChance.floatValue());
 	}
 
 	@SubscribeEvent

@@ -2,7 +2,7 @@ package insane96mcp.experiencetweaks.module;
 
 import insane96mcp.experiencetweaks.ExperienceTweaks;
 import insane96mcp.insanelib.core.feature.Module;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.ModConfigSpec;
@@ -19,6 +19,6 @@ public class ETModules {
 	}
 
 	public static void create(String id, String name, IEventBus eventBus, ModConfigSpec.Builder builder) {
-		Module.Builder.create(ResourceLocation.parse(id), name, ModConfig.Type.COMMON, builder, eventBus).build();
+		Module.Builder.create(Identifier.parse(id), name, ModConfig.Type.COMMON, builder, eventBus).build();
 	}
 }

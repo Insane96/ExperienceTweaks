@@ -9,10 +9,13 @@ import insane96mcp.insanelib.core.feature.Module;
 import insane96mcp.insanelib.core.feature.config.Config;
 import insane96mcp.insanelib.core.feature.config.MinMaxConfig;
 import insane96mcp.insanelib.module.base.NbtTags;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.projectile.ThrownExperienceBottle;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownExperienceBottle;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -22,7 +25,7 @@ import net.neoforged.neoforge.event.level.BlockDropsEvent;
 
 @LoadFeature(module = ETModules.EXPERIENCE, description = "Various changes to dropped experience.")
 public class DroppedExperience extends Feature {
-	public static ResourceLocation XP_PROCESSED;
+	public static Identifier XP_PROCESSED;
 	//public static final TagKey<Block> NO_BLOCK_XP_MULTIPLIER = ISOBlockTagsProvider.create("no_xp_multiplier");
 	//public static final TagKey<EntityType<?>> NO_ENTITY_XP_MULTIPLIER = TagKey.create(Registries.ENTITY_TYPE, InsaneSO.location("no_xp_multiplier"));
 
@@ -68,28 +71,28 @@ public class DroppedExperience extends Feature {
 
 	/*public static void tryGenerateMilkXp(Entity entity) {
 		if (milkXp.min > 0 || milkXp.max > 0)
-			entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), milkXp.getIntRandBetween(entity.level().random)));
+			entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), milkXp.getIntRandBetween(entity.level().getRandom())));
 	}*/
 
 	public static void tryGenerateBeehiveXp(Entity entity) {
 		if (!Feature.isEnabled(DroppedExperience.class)
 				|| (beehiveHarvestExperience.min == 0 && beehiveHarvestExperience.max == 0))
 			return;
-		entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), beehiveHarvestExperience.getIntRandBetween(entity.level().random)));
+		entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), beehiveHarvestExperience.getIntRandBetween(entity.level().getRandom())));
 	}
 
 	public static void tryGenerateBrushXp(Entity entity) {
 		if (!Feature.isEnabled(DroppedExperience.class)
 				|| (brushingXp.min == 0 && brushingXp.max == 0))
 			return;
-		entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), brushingXp.getIntRandBetween(entity.level().random)));
+		entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), brushingXp.getIntRandBetween(entity.level().getRandom())));
 	}
 
 	public static void tryGenerateSheepShearXp(Entity entity) {
 		if (!Feature.isEnabled(DroppedExperience.class)
 				|| (shearXp.min == 0 && shearXp.max == 0))
 			return;
-		entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), shearXp.getIntRandBetween(entity.level().random)));
+		entity.level().addFreshEntity(new ExperienceOrb(entity.level(), entity.getX(), entity.getY(), entity.getZ(), shearXp.getIntRandBetween(entity.level().getRandom())));
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGH)
@@ -105,14 +108,14 @@ public class DroppedExperience extends Feature {
 	private static void handleGlobalExperience(EntityJoinLevelEvent event, ExperienceOrb xpOrb) {
 		if (globalMultiplier == 1d
 				|| ModNBTData.get(xpOrb, XP_PROCESSED, Boolean.class)
-				|| xpOrb.level().isClientSide)
+				|| xpOrb.level().isClientSide())
 			return;
 
 		//Orbs spawned by ExperienceOrb.award already have the multiplier applied (see ExperienceOrbMixin)
 		if (!awardingMultipliedExperience)
-			xpOrb.value = applyGlobalMultiplier(xpOrb.value, xpOrb.level().getRandom());
+			xpOrb.setValue(applyGlobalMultiplier(xpOrb.getValue(), xpOrb.level().getRandom()));
 		ModNBTData.put(xpOrb, XP_PROCESSED, true);
-		if (xpOrb.value <= 0)
+		if (xpOrb.getValue() <= 0)
 			event.setCanceled(true);
 	}
 
@@ -146,7 +149,7 @@ public class DroppedExperience extends Feature {
 				/*|| mob.getType().is(NO_ENTITY_XP_MULTIPLIER)*/)
 			return;
 
-		if (mob.getSpawnType() == MobSpawnType.SPAWNER)
+		if (mob.getSpawnType() == EntitySpawnReason.SPAWNER)
 			NbtTags.setExperienceMultiplier(mobs$multiplierSpawner, mob);
 		else
 			NbtTags.setExperienceMultiplier(mobs$multiplierNatural, mob);
@@ -192,10 +195,12 @@ public class DroppedExperience extends Feature {
 			return;
 
 		int xpReward = ((MobAccessor) mob).getXpReward();
-		for (EquipmentSlot slot : EquipmentSlot.values()) {
+		for (EquipmentSlot slot : EquipmentSlot.VALUES) {
+			if (!slot.canIncreaseExperience())
+				continue;
 			ItemStack stack = mob.getItemBySlot(slot);
 			//Like vanilla, equipment with a guaranteed drop (e.g. picked up by the mob) doesn't give bonus experience
-			if (stack.isEmpty() || ((MobAccessor) mob).callGetEquipmentDropChance(slot) > 1f)
+			if (stack.isEmpty() || mob.getDropChances().byEquipment(slot) > 1f)
 				continue;
 			xpReward += mobs$bonusExperiencePerEquipment;
 			if (stack.isEnchanted())

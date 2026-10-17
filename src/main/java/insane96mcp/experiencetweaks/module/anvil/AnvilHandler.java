@@ -31,11 +31,12 @@ public class AnvilHandler {
     private static final int COST_RENAME = 1;
 
     /**
-     * Set when the result is too expensive, read (and cleared) by mixin.AnvilMenuMixin. ThreadLocal since in singleplayer both the client and the integrated server compute the anvil result.
+     * Anvil break chance of the anvil operation being taken, set on AnvilCraftEvent.Pre and read by mixin.AnvilMenuMixin. Null to use the vanilla chance.
+     * ThreadLocal since in singleplayer both the client and the integrated server take the anvil result.
      */
-    public static final ThreadLocal<Integer> TOO_EXPENSIVE_COST = new ThreadLocal<>();
+    public static final ThreadLocal<Float> BREAK_CHANCE = new ThreadLocal<>();
 
-    // Rejections cancel the event instead of setting an empty output, otherwise AnvilMenu falls back to the vanilla logic
+    // Rejections cancel the event, which empties the output and resets the cost
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onAnvilUpdate(AnvilUpdateEvent event) {
@@ -45,7 +46,11 @@ public class AnvilHandler {
                 && !Feature.isEnabled(AnvilBetterRepair.class)
                 && !renamingNoCost)
             return;
-        if (!event.getOutput().isEmpty())
+        // The event is fired after the vanilla result is computed, if another mod has changed it, leave it as is
+        AnvilUpdateEvent.VanillaResult vanillaResult = event.getVanillaResult();
+        if (!ItemStack.matches(event.getOutput(), vanillaResult.output())
+                || event.getXpCost() != vanillaResult.xpCost()
+                || event.getMaterialCost() != vanillaResult.materialCost())
             return;
 
         ItemStack left = event.getLeft();
@@ -66,7 +71,6 @@ public class AnvilHandler {
         }
 
         int mergeCost = 0;
-        // event.getCost() is always 0 here, as AnvilMenu fires the event before adding the inputs' repair costs
         int baseCost = left.getOrDefault(DataComponents.REPAIR_COST, 0) + right.getOrDefault(DataComponents.REPAIR_COST, 0);
         int repairItemCountCost = 0;
         boolean isRenaming = false;
@@ -78,7 +82,7 @@ public class AnvilHandler {
 
             Optional<AnvilRepair.RepairData> oRepairData = AnvilBetterRepair.getCustomAnvilRepair(left, right);
 
-            if (resultStack.isDamageableItem() && (resultStack.getItem().isValidRepairItem(resultStack, right) || oRepairData.isPresent())) {
+            if (resultStack.isDamageableItem() && (left.isValidRepairItem(right) ||oRepairData.isPresent())) {
                 isMaterialRepair = true;
                 if (oRepairData.isPresent()) {
                     // Custom material repair
@@ -269,9 +273,10 @@ public class AnvilHandler {
 
         int repairCap = AnvilXpCost.getRepairCap();
         if (finalCost >= repairCap && !player.getAbilities().instabuild) {
-            // The event is canceled, so the cost is reset to 0; mixin.AnvilMenuMixin sets it back to show "Too Expensive"
-            TOO_EXPENSIVE_COST.set(finalCost);
-            event.setCanceled(true);
+            // Not canceled, otherwise the cost is reset to 0 and "Too Expensive" isn't shown
+            event.setOutput(ItemStack.EMPTY);
+            event.setXpCost(finalCost);
+            event.setMaterialCost(0);
             return;
         }
 
@@ -293,7 +298,7 @@ public class AnvilHandler {
         EnchantmentHelper.setEnchantments(resultStack, mutableEnchants.toImmutable());
 
         event.setOutput(resultStack);
-        event.setCost(finalCost);
+        event.setXpCost(finalCost);
         event.setMaterialCost(repairItemCountCost);
     }
 }

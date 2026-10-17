@@ -1,0 +1,9 @@
+{
+  "item_to_repair": "minecraft:wooden_spear",
+  "repair": [
+    {
+      "repair_material": "#minecraft:planks",
+      "amount": 0.75
+    }
+  ]
+}

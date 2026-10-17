@@ -6,13 +6,13 @@ import insane96mcp.experiencetweaks.module.anvil.anvilrepair.AnvilBetterRepair;
 import insane96mcp.experiencetweaks.module.anvil.anvilrepair.AnvilRepairReloadListener;
 import insane96mcp.experiencetweaks.network.NetworkHandler;
 import insane96mcp.insanelib.setup.ILModConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import org.slf4j.Logger;
 
 @Mod(ExperienceTweaks.MOD_ID)
@@ -27,11 +27,11 @@ public class ExperienceTweaks {
         modContainer.registerConfig(ModConfig.Type.COMMON, CONFIG.spec);
 
         eventBus.addListener(NetworkHandler::register);
-        NeoForge.EVENT_BUS.addListener((AddReloadListenerEvent event) -> event.addListener(AnvilRepairReloadListener.INSTANCE));
+        NeoForge.EVENT_BUS.addListener((AddServerReloadListenersEvent event) -> event.addListener(location("anvil_repairs"), AnvilRepairReloadListener.INSTANCE));
         AnvilBetterRepair.RECIPE_SERIALIZERS.register(eventBus);
     }
 
-    public static ResourceLocation location(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    public static Identifier location(String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 }
