@@ -17,6 +17,6 @@ public class ThrownExperienceBottleMixin {
 	@Expression("? + this.level().random.nextInt(?) + this.level().random.nextInt(?)")
 	@ModifyExpressionValue(method = "onHit", at = @At("MIXINEXTRAS:EXPRESSION"))
 	public int onHit(int original) {
-		return DroppedExperience.getXpBottleDroppedExperience((ThrownExperienceBottle) (Object) this);
+		return DroppedExperience.getXpBottleDroppedExperience((ThrownExperienceBottle) (Object) this, original);
 	}
 }

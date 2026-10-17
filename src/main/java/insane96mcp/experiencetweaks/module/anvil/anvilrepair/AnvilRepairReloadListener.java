@@ -14,12 +14,15 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 @EventBusSubscriber(modid = ExperienceTweaks.MOD_ID)
 public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener {
-    public static HashMap<ResourceLocation, AnvilRepair> REPAIRS = new HashMap<>();
+    // Always replaced with a new unmodifiable map instead of being modified in place, since in singleplayer the client
+    // (on sync) and the integrated server share this field from different threads
+    public static volatile Map<ResourceLocation, AnvilRepair> REPAIRS = Map.of();
     public static final AnvilRepairReloadListener INSTANCE;
     private static final Gson GSON = new GsonBuilder().create();
 
@@ -33,11 +36,11 @@ public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener 
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profilerFiller) {
-        REPAIRS.clear();
+        HashMap<ResourceLocation, AnvilRepair> repairs = new HashMap<>();
         for (var entry : map.entrySet()) {
             try {
                 AnvilRepair anvilRepair = GSON.fromJson(entry.getValue(), AnvilRepair.class);
-                REPAIRS.put(entry.getKey(), anvilRepair);
+                repairs.put(entry.getKey(), anvilRepair);
             }
             catch (JsonSyntaxException e) {
                 ExperienceTweaks.LOGGER.error("Parsing error loading Anvil Repair {}: {}", entry.getKey(), e.getMessage());
@@ -46,7 +49,13 @@ public class AnvilRepairReloadListener extends SimpleJsonResourceReloadListener 
                 ExperienceTweaks.LOGGER.error("Failed loading Anvil Repair {}: {}", entry.getKey(), e.getMessage());
             }
         }
+        setRepairs(repairs);
         ExperienceTweaks.LOGGER.info("Loaded {} Anvil Repairs", REPAIRS.size());
+    }
+
+    public static void setRepairs(Map<ResourceLocation, AnvilRepair> repairs) {
+        // Not Map.copyOf, to keep a stable iteration order between runs (the first matching repair is used)
+        REPAIRS = Collections.unmodifiableMap(new HashMap<>(repairs));
     }
 
     @SubscribeEvent

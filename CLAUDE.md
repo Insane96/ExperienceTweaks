@@ -64,7 +64,7 @@ Mixin config: `src/main/resources/experiencetweaks.mixins.json`.
 
 ### Networking
 
-`NetworkHandler` registers `AnvilRepairSyncMessage` (server→client), used to sync anvil repair state/config so the client-side anvil screen (see `AnvilScreenMixin`) reflects the right values. Uses NeoForge's `CustomPacketPayload` + `StreamCodec` pattern. The mod is otherwise server-side only.
+`NetworkHandler` registers two server→client messages, both sent on `OnDatapackSyncEvent` (join and `/reload`): `AnvilRepairSyncMessage` syncs the datapack anvil repairs (used by EMI), and `AnvilConfigSyncMessage` syncs the server's anvil `repairCap` (the config is COMMON, so NeoForge doesn't sync it) so the client-side anvil screen (see `AnvilScreenMixin`) shows the right "Too Expensive" cap. Uses NeoForge's `CustomPacketPayload` + `StreamCodec` pattern. The mod is otherwise server-side only.
 
 ### Configuration Pattern
 

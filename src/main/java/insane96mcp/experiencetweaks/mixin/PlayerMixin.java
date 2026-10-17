@@ -20,7 +20,7 @@ public class PlayerMixin {
 
     @ModifyReturnValue(method = "getBaseExperienceReward", at = @At(value = "RETURN", ordinal = 0))
     private int experiencetweaks$getExperiencePoints(int original) {
-        int exp = PlayerExperience.getExperienceOnDeath((Player) (Object) this, false);
+        int exp = PlayerExperience.getExperienceOnDeath((Player) (Object) this, original, false);
 		return exp != -1 ? exp : original;
 	}
 }

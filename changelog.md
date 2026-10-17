@@ -1,3 +1,26 @@
+# 1.1.5.0
+* Fixed renaming an enchanted book in an anvil removing its enchantments, and combining two enchanted books losing the left book's enchantments
+* Fixed anvil prior work penalty never being applied to the XP cost
+* Fixed players dropping no experience on death when the global experience multiplier is greater than 1
+* Fixed experience orbs removed by the global experience multiplier remaining in the world as "ghost" entities
+* Global and block experience multipliers now round randomly instead of truncating (e.g. with a 1.5 multiplier, 1 xp has 50% chance to become 2)
+* Fixed some experience orbs skipping the global experience multiplier by merging into already multiplied orbs
+* Fixed mobs' bonus experience from equipment being applied even when Dropped Experience is disabled, and being given by equipment picked up by mobs
+* Fixed Bottle o' Enchanting experience being changed even when Dropped Experience is disabled
+* Fixed players dropping no experience on death when 'Dropped experience on death' is set to -1 and Dropped Experience is enabled
+* Anvils now respect items' custom enchantment compatibility from other mods
+* Fixed crafting grid repair recipes (e.g. Amethyst Repair) consuming more materials than needed
+* Fixed anvils sometimes degrading when only renaming, depending on event order
+* Anvils can no longer be repaired in adventure mode
+* Combining two items with the same over-max enchantment level (e.g. from commands) no longer lowers it to the max level
+* Fixed the first material in a standard anvil repair repairing more than the others when the materials required are increased by enchantments
+* Fixed a possible concurrency issue with anvil repairs data in singleplayer
+* The anvil "Too Expensive" cap shown on the client is now synced from the server config
+* Fixed anvil operations rejected by the mod (e.g. too expensive or over a repair's max repair) falling back to the vanilla anvil result
+  * "Too Expensive" is now properly shown when the cost exceeds the repair cap
+* Crafting grid repair recipes now reject an amount that's not greater than 0
+* Fixed experience dropped on death overflowing with huge levels
+
 # 1.1.4.1
 * Fixed crash with latest InsaneLib
 

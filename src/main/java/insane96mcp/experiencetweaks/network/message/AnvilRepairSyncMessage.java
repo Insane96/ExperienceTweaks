@@ -29,10 +29,7 @@ public record AnvilRepairSyncMessage(Map<ResourceLocation, AnvilRepair> repairs)
     }
 
     public static void handle(final AnvilRepairSyncMessage payload, final IPayloadContext context) {
-        context.enqueueWork(() -> {
-            AnvilRepairReloadListener.REPAIRS.clear();
-            AnvilRepairReloadListener.REPAIRS.putAll(payload.repairs());
-        });
+        context.enqueueWork(() -> AnvilRepairReloadListener.setRepairs(payload.repairs()));
     }
 
     public static void sync(Map<ResourceLocation, AnvilRepair> repairs, ServerPlayer player) {

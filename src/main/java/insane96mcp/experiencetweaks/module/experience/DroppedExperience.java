@@ -10,10 +10,8 @@ import insane96mcp.insanelib.core.feature.config.Config;
 import insane96mcp.insanelib.core.feature.config.MinMaxConfig;
 import insane96mcp.insanelib.module.base.NbtTags;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.projectile.ThrownExperienceBottle;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
@@ -99,24 +97,47 @@ public class DroppedExperience extends Feature {
 		if (!this.isEnabled())
 			return;
 		if (event.getEntity() instanceof ExperienceOrb xpOrb)
-			handleGlobalExperience(xpOrb);
+			handleGlobalExperience(event, xpOrb);
 		handleMobsMultiplier(event);
 	}
 
-	private static void handleGlobalExperience(ExperienceOrb xpOrb) {
+	//Cancel the event instead of removing the orb, otherwise it gets added to the level anyway as a removed "ghost" entity
+	private static void handleGlobalExperience(EntityJoinLevelEvent event, ExperienceOrb xpOrb) {
 		if (globalMultiplier == 1d
 				|| ModNBTData.get(xpOrb, XP_PROCESSED, Boolean.class)
 				|| xpOrb.level().isClientSide)
 			return;
 
-		if (globalMultiplier == 0d)
-			xpOrb.remove(Entity.RemovalReason.KILLED);
-		else
-			xpOrb.value *= globalMultiplier;
-
+		//Orbs spawned by ExperienceOrb.award already have the multiplier applied (see ExperienceOrbMixin)
+		if (!awardingMultipliedExperience)
+			xpOrb.value = applyGlobalMultiplier(xpOrb.value, xpOrb.level().getRandom());
 		ModNBTData.put(xpOrb, XP_PROCESSED, true);
-		if (xpOrb.value <= 0d)
-			xpOrb.remove(Entity.RemovalReason.KILLED);
+		if (xpOrb.value <= 0)
+			event.setCanceled(true);
+	}
+
+	/**
+	 * True while ExperienceOrb.award is running with an amount that has already been multiplied by the global multiplier
+	 */
+	public static boolean awardingMultipliedExperience = false;
+
+	public static boolean isGlobalMultiplierActive() {
+		return Feature.isEnabled(DroppedExperience.class) && globalMultiplier != 1d;
+	}
+
+	public static int applyGlobalMultiplier(int experience, RandomSource random) {
+		return multiplyRandomRounding(experience, globalMultiplier, random);
+	}
+
+	/**
+	 * Multiplies the experience and rounds the result up or down randomly based on the fractional part, so small amounts aren't lost (or never increased) due to truncation
+	 */
+	private static int multiplyRandomRounding(int experience, double multiplier, RandomSource random) {
+		double multiplied = experience * multiplier;
+		int result = (int) multiplied;
+		if (random.nextDouble() < multiplied - result)
+			result++;
+		return result;
 	}
 
 	public static void handleMobsMultiplier(EntityJoinLevelEvent event) {
@@ -158,42 +179,35 @@ public class DroppedExperience extends Feature {
 	private static void handleMultiplier(BlockDropsEvent event) {
 		if (blockMultiplier == 1d)
 			return;
-		event.setDroppedExperience((int) (event.getDroppedExperience() * blockMultiplier));
+		event.setDroppedExperience(multiplyRandomRounding(event.getDroppedExperience(), blockMultiplier, event.getLevel().getRandom()));
 	}
 
 	// In vanilla, mobs drop loot before checking if they should drop more experience due to gear, this makes them never drop more experience if they drop equipment
 	// This sets the xp reward before the loot drops (also changes the xp reward from config options)
 	@SubscribeEvent
 	public void fixEquipmentExperience(LivingDeathEvent event) {
-		if (!(event.getEntity() instanceof Mob mob)
+		if (!this.isEnabled()
+				|| !(event.getEntity() instanceof Mob mob)
 				|| ((MobAccessor) mob).getXpReward() <= 0)
 			return;
 
 		int xpReward = ((MobAccessor) mob).getXpReward();
-		for (ItemStack stack : mob.getArmorSlots()) {
-			if (!stack.isEmpty()) {
-				xpReward += mobs$bonusExperiencePerEquipment;
-				if (stack.isEnchanted())
-					xpReward += mobs$bonusExperiencePerEnchantedEquipment;
-			}
-		}
-		for (ItemStack stack : mob.getHandSlots()) {
-			if (!stack.isEmpty()) {
-				xpReward += mobs$bonusExperiencePerEquipment;
-				if (stack.isEnchanted())
-					xpReward += mobs$bonusExperiencePerEnchantedEquipment;
-			}
-		}
-		if (!mob.getBodyArmorItem().isEmpty()) {
+		for (EquipmentSlot slot : EquipmentSlot.values()) {
+			ItemStack stack = mob.getItemBySlot(slot);
+			//Like vanilla, equipment with a guaranteed drop (e.g. picked up by the mob) doesn't give bonus experience
+			if (stack.isEmpty() || ((MobAccessor) mob).callGetEquipmentDropChance(slot) > 1f)
+				continue;
 			xpReward += mobs$bonusExperiencePerEquipment;
-			if (mob.getBodyArmorItem().isEnchanted())
+			if (stack.isEnchanted())
 				xpReward += mobs$bonusExperiencePerEnchantedEquipment;
 		}
 
 		((MobAccessor) mob).setXpReward(xpReward);
 	}
 
-	public static int getXpBottleDroppedExperience(ThrownExperienceBottle thrownExperienceBottle) {
+	public static int getXpBottleDroppedExperience(ThrownExperienceBottle thrownExperienceBottle, int original) {
+		if (!Feature.isEnabled(DroppedExperience.class))
+			return original;
 		return xpBottleDroppedXp;
 	}
 }

@@ -44,7 +44,8 @@ public class AnvilDegradation extends Feature {
 	public void onRightClickAnvil(PlayerInteractEvent.RightClickBlock event) {
 		if (!this.isEnabled()
 				|| !fixAnvils
-				|| !event.getItemStack().is(REPAIRS_ANVIL))
+				|| !event.getItemStack().is(REPAIRS_ANVIL)
+				|| !event.getEntity().mayBuild())
 			return;
 		BlockState state = event.getLevel().getBlockState(event.getPos());
 		if (!state.is(BlockTags.ANVIL))
@@ -58,6 +59,9 @@ public class AnvilDegradation extends Feature {
 
 		event.setCanceled(true);
 		event.setCancellationResult(InteractionResult.SUCCESS);
+		//Trigger the advancement with the stack before it's consumed
+		if (event.getEntity() instanceof ServerPlayer serverPlayer)
+			CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(serverPlayer, event.getPos(), event.getItemStack().copy());
 		if (!event.getEntity().getAbilities().instabuild)
 			event.getItemStack().shrink(1);
 		BlockState repairedState = isChipped
@@ -65,8 +69,5 @@ public class AnvilDegradation extends Feature {
 				: Blocks.CHIPPED_ANVIL.defaultBlockState().setValue(AnvilBlock.FACING, direction);
 		event.getLevel().setBlockAndUpdate(event.getPos(), repairedState);
 		event.getLevel().playSound(event.getEntity(), event.getPos(), SoundEvents.ANVIL_USE, SoundSource.BLOCKS, 1f, 1.5f);
-
-		if (event.getEntity() instanceof ServerPlayer serverPlayer)
-			CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(serverPlayer, event.getPos(), event.getItemStack());
 	}
 }

@@ -6,10 +6,12 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import insane96mcp.insanelib.data.ObjTag;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.*;
@@ -90,12 +92,55 @@ public class CraftingRepairRecipe extends CustomRecipe {
         // only ever touch its damage below, so nothing about the item is lost through the repair.
         ItemStack resultStack = repairableItem.copy();
 
-        double repairPerMaterial = resultStack.getMaxDamage() / (double) this.amountRequired;
-        int materialsUsed = (int) Math.min(materialSlots, Math.ceil(resultStack.getDamageValue() / repairPerMaterial));
+        double repairPerMaterial = this.getRepairPerMaterial(resultStack);
+        int materialsUsed = this.getMaterialsUsed(resultStack, materialSlots);
         int newDamage = (int) Math.max(0, resultStack.getDamageValue() - Math.round(materialsUsed * repairPerMaterial));
         resultStack.setDamageValue(newDamage);
 
         return resultStack;
+    }
+
+    /**
+     * Gives back the materials that aren't needed to fully repair the item, since by default every slot is consumed.
+     */
+    @Override
+    public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
+        NonNullList<ItemStack> remainingItems = super.getRemainingItems(input);
+        ItemStack repairableItem = null;
+        int materialSlots = 0;
+        for (int i = 0; i < input.size(); i++) {
+            ItemStack stack = input.getItem(i);
+            if (stack.isEmpty())
+                continue;
+
+            if (this.repairMaterial.matches(stack.getItem()))
+                materialSlots++;
+            else if (stack.isDamageableItem())
+                repairableItem = stack;
+        }
+        if (repairableItem == null)
+            return remainingItems;
+
+        int materialsToConsume = this.getMaterialsUsed(repairableItem, materialSlots);
+        for (int i = 0; i < input.size(); i++) {
+            ItemStack stack = input.getItem(i);
+            if (stack.isEmpty() || !this.repairMaterial.matches(stack.getItem()))
+                continue;
+
+            if (materialsToConsume > 0)
+                materialsToConsume--;
+            else
+                remainingItems.set(i, stack.copyWithCount(1));
+        }
+        return remainingItems;
+    }
+
+    private double getRepairPerMaterial(ItemStack stack) {
+        return stack.getMaxDamage() / (double) this.amountRequired;
+    }
+
+    private int getMaterialsUsed(ItemStack stack, int materialSlots) {
+        return (int) Math.min(materialSlots, Math.ceil(stack.getDamageValue() / this.getRepairPerMaterial(stack)));
     }
 
     /**
@@ -123,7 +168,7 @@ public class CraftingRepairRecipe extends CustomRecipe {
                         CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(CraftingRecipe::category),
                         OBJ_TAG_CODEC.fieldOf("item_to_repair").forGetter(CraftingRepairRecipe::getItemToRepair),
                         OBJ_TAG_CODEC.fieldOf("repair_material").forGetter(CraftingRepairRecipe::getRepairMaterial),
-                        Codec.FLOAT.fieldOf("amount").forGetter(CraftingRepairRecipe::getAmountRequired)
+                        ExtraCodecs.POSITIVE_FLOAT.fieldOf("amount").forGetter(CraftingRepairRecipe::getAmountRequired)
                 ).apply(instance, CraftingRepairRecipe::new));
         private static final StreamCodec<RegistryFriendlyByteBuf, CraftingRepairRecipe> STREAM_CODEC = StreamCodec.composite(
                 CraftingBookCategory.STREAM_CODEC, CraftingRecipe::category,

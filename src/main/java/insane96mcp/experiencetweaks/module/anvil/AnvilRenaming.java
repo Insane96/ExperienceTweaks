@@ -5,6 +5,7 @@ import insane96mcp.insanelib.core.feature.Feature;
 import insane96mcp.insanelib.core.feature.LoadFeature;
 import insane96mcp.insanelib.core.feature.config.Config;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.AnvilRepairEvent;
 
@@ -20,7 +21,8 @@ public class AnvilRenaming extends Feature {
 		return Feature.isEnabled(AnvilRenaming.class) && noCost;
 	}
 
-	@SubscribeEvent
+	//Run after AnvilDegradation, otherwise its break chance overrides this one
+	@SubscribeEvent(priority = EventPriority.LOW)
 	public void onAnvilRepair(AnvilRepairEvent event) {
 		if (!this.isEnabled() || !noBreak)
 			return;

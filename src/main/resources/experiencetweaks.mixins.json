@@ -3,8 +3,10 @@
     "package": "insane96mcp.experiencetweaks.mixin",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
+        "AnvilMenuMixin",
         "BeehiveBlockMixin",
         "BrushableBlockEntityMixin",
+        "ExperienceOrbMixin",
         "MobMixin",
         "PlayerMixin",
         "SheepMixin",

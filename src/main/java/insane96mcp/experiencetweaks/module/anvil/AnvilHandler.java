@@ -30,6 +30,13 @@ public class AnvilHandler {
 
     private static final int COST_RENAME = 1;
 
+    /**
+     * Set when the result is too expensive, read (and cleared) by mixin.AnvilMenuMixin. ThreadLocal since in singleplayer both the client and the integrated server compute the anvil result.
+     */
+    public static final ThreadLocal<Integer> TOO_EXPENSIVE_COST = new ThreadLocal<>();
+
+    // Rejections cancel the event instead of setting an empty output, otherwise AnvilMenu falls back to the vanilla logic
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onAnvilUpdate(AnvilUpdateEvent event) {
         boolean renamingNoCost = AnvilRenaming.isNoCost();
@@ -50,7 +57,8 @@ public class AnvilHandler {
         String itemName = event.getName() != null ? event.getName() : "";
 
         ItemStack resultStack = left.copy();
-        ItemEnchantments leftEnchantments = resultStack.getEnchantments();
+        // Enchanted books keep their enchantments in STORED_ENCHANTMENTS, not ENCHANTMENTS
+        ItemEnchantments leftEnchantments = EnchantmentHelper.getEnchantmentsForCrafting(resultStack);
 
         Map<Holder<Enchantment>, Integer> resultEnchantMap = new HashMap<>();
         for (Holder<Enchantment> holder : leftEnchantments.keySet()) {
@@ -58,7 +66,8 @@ public class AnvilHandler {
         }
 
         int mergeCost = 0;
-        int baseCost = (int) event.getCost(); // left.getRepairCost() + right.getRepairCost()
+        // event.getCost() is always 0 here, as AnvilMenu fires the event before adding the inputs' repair costs
+        int baseCost = left.getOrDefault(DataComponents.REPAIR_COST, 0) + right.getOrDefault(DataComponents.REPAIR_COST, 0);
         int repairItemCountCost = 0;
         boolean isRenaming = false;
         boolean isMaterialRepair = false;
@@ -94,8 +103,7 @@ public class AnvilHandler {
 
                     float repairSteps = Math.min(resultStack.getDamageValue(), resultStack.getMaxDamage() / amountRequired);
                     if (repairSteps <= 0 || resultStack.getDamageValue() <= maxPartialRepairDmg) {
-                        event.setOutput(ItemStack.EMPTY);
-                        event.setCost(0);
+                        event.setCanceled(true);
                         return;
                     }
                     float damageValue = resultStack.getDamageValue();
@@ -122,10 +130,9 @@ public class AnvilHandler {
                             increase += increaseFlat * leftEnchantments.getLevel(holder);
                         amountRequired += increase;
                     }
-                    int repairSteps = Math.min(resultStack.getDamageValue(), resultStack.getMaxDamage() / (int) amountRequired);
+                    int repairSteps = (int) Math.min(resultStack.getDamageValue(), resultStack.getMaxDamage() / amountRequired);
                     if (repairSteps <= 0) {
-                        event.setOutput(ItemStack.EMPTY);
-                        event.setCost(0);
+                        event.setCanceled(true);
                         return;
                     }
                     for (repairItemCountCost = 0; repairSteps > 0 && repairItemCountCost < right.getCount(); ++repairItemCountCost) {
@@ -137,8 +144,7 @@ public class AnvilHandler {
             } else {
                 // Merging / enchantment book application
                 if (!isEnchantedBook && (!resultStack.is(right.getItem()) || !resultStack.isDamageableItem())) {
-                    event.setOutput(ItemStack.EMPTY);
-                    event.setCost(0);
+                    event.setCanceled(true);
                     return;
                 }
 
@@ -176,10 +182,12 @@ public class AnvilHandler {
                 for (Holder<Enchantment> rightHolder : rightEnchantments.keySet()) {
                     int leftLvl = resultEnchantMap.getOrDefault(rightHolder, 0);
                     int rightLvl = rightEnchantments.getLevel(rightHolder);
+                    // Combining two equal levels never goes above the max level, while over-max levels (e.g. from commands) are kept
                     rightLvl = (leftLvl == rightLvl && rightLvl < rightHolder.value().getMaxLevel()) ? rightLvl + 1 : Math.max(rightLvl, leftLvl);
 
-                    boolean canEnchant2 = rightHolder.value().canEnchant(left);
-                    if (player.getAbilities().instabuild || left.is(Items.ENCHANTED_BOOK))
+                    // Like NeoForge, respect IItemExtension#supportsEnchantment, which also handles Enchanted Books
+                    boolean canEnchant2 = left.supportsEnchantment(rightHolder);
+                    if (player.getAbilities().instabuild)
                         canEnchant2 = true;
 
                     for (Holder<Enchantment> leftHolder : resultEnchantMap.keySet()) {
@@ -194,8 +202,6 @@ public class AnvilHandler {
                         cannotEnchant = true;
                     } else {
                         canEnchant = true;
-                        if (rightLvl > rightHolder.value().getMaxLevel() && leftLvl == rightLvl)
-                            rightLvl = rightHolder.value().getMaxLevel();
                         resultEnchantMap.put(rightHolder, rightLvl);
 
                         int enchantCost = rightHolder.value().getAnvilCost();
@@ -220,8 +226,7 @@ public class AnvilHandler {
                     mergeCost = 0;
 
                 if (cannotEnchant && !canEnchant) {
-                    event.setOutput(ItemStack.EMPTY);
-                    event.setCost(0);
+                    event.setCanceled(true);
                     return;
                 }
             }
@@ -257,31 +262,35 @@ public class AnvilHandler {
         if (isRenaming && AnvilRenaming.isNoCost() && mergeCost <= 0)
             finalCost = 0;
 
-        if (!isRenaming && right.isEmpty())
-            resultStack = ItemStack.EMPTY;
+        if (!isRenaming && right.isEmpty()) {
+            event.setCanceled(true);
+            return;
+        }
 
         int repairCap = AnvilXpCost.getRepairCap();
-        if (finalCost >= repairCap && !player.getAbilities().instabuild)
-            resultStack = ItemStack.EMPTY;
+        if (finalCost >= repairCap && !player.getAbilities().instabuild) {
+            // The event is canceled, so the cost is reset to 0; mixin.AnvilMenuMixin sets it back to show "Too Expensive"
+            TOO_EXPENSIVE_COST.set(finalCost);
+            event.setCanceled(true);
+            return;
+        }
 
         // Update repair cost component and enchantments on result
         double multiplier = isMaterialRepair && xpPerEnchantLevel >= 0 ? 0.0 : AnvilXpCost.getMultiplier();
-        if (!resultStack.isEmpty()) {
-            if (multiplier != 0) {
-                int toolRepairCost = resultStack.getOrDefault(DataComponents.REPAIR_COST, 0);
-                if (!right.isEmpty() && toolRepairCost < right.getOrDefault(DataComponents.REPAIR_COST, 0))
-                    toolRepairCost = right.getOrDefault(DataComponents.REPAIR_COST, 0);
-                if (mergeCost >= 1)
-                    toolRepairCost = AnvilMenu.calculateIncreasedRepairCost(toolRepairCost);
-                resultStack.set(DataComponents.REPAIR_COST, toolRepairCost);
-            }
-
-            ItemEnchantments.Mutable mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
-            for (Map.Entry<Holder<Enchantment>, Integer> e : resultEnchantMap.entrySet()) {
-                mutableEnchants.set(e.getKey(), e.getValue());
-            }
-            EnchantmentHelper.setEnchantments(resultStack, mutableEnchants.toImmutable());
+        if (multiplier != 0) {
+            int toolRepairCost = resultStack.getOrDefault(DataComponents.REPAIR_COST, 0);
+            if (!right.isEmpty() && toolRepairCost < right.getOrDefault(DataComponents.REPAIR_COST, 0))
+                toolRepairCost = right.getOrDefault(DataComponents.REPAIR_COST, 0);
+            if (mergeCost >= 1)
+                toolRepairCost = AnvilMenu.calculateIncreasedRepairCost(toolRepairCost);
+            resultStack.set(DataComponents.REPAIR_COST, toolRepairCost);
         }
+
+        ItemEnchantments.Mutable mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        for (Map.Entry<Holder<Enchantment>, Integer> e : resultEnchantMap.entrySet()) {
+            mutableEnchants.set(e.getKey(), e.getValue());
+        }
+        EnchantmentHelper.setEnchantments(resultStack, mutableEnchants.toImmutable());
 
         event.setOutput(resultStack);
         event.setCost(finalCost);

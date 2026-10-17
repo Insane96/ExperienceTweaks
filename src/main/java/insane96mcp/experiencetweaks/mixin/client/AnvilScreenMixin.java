@@ -2,7 +2,6 @@ package insane96mcp.experiencetweaks.mixin.client;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import insane96mcp.experiencetweaks.module.anvil.AnvilXpCost;
-import insane96mcp.insanelib.core.feature.Feature;
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -14,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 public class AnvilScreenMixin {
     @ModifyExpressionValue(method = "renderLabels", at = @At(value = "CONSTANT", args = "intValue=40"))
     private int experiencetweaks$tooExpensiveCap(int cap) {
-        if (!Feature.isEnabled(AnvilXpCost.class)) return cap;
-        return AnvilXpCost.repairCap;
+        return AnvilXpCost.getClientRepairCap();
     }
 }
