@@ -1,3 +1,7 @@
+# 1.1.5.1
+* Added Mace (0.75 Breeze Rods), Elytra (3 Phantom Membranes) and Wolf Armor (4.5 Armadillo Scutes) better repair
+* Fixed Turtle Shell better repair not working (wrong Turtle Scute ID)
+
 # 1.1.5.0
 * Fixed renaming an enchanted book in an anvil removing its enchantments, and combining two enchanted books losing the left book's enchantments
 * Fixed anvil prior work penalty never being applied to the XP cost

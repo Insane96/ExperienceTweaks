@@ -1,0 +1,9 @@
+{
+  "item_to_repair": "minecraft:elytra",
+  "repair": [
+    {
+      "repair_material": "minecraft:phantom_membrane",
+      "amount": 3
+    }
+  ]
+}

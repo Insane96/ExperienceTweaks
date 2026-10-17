@@ -1,0 +1,9 @@
+{
+  "item_to_repair": "minecraft:mace",
+  "repair": [
+    {
+      "repair_material": "minecraft:breeze_rod",
+      "amount": 0.75
+    }
+  ]
+}

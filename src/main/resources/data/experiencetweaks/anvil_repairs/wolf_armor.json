@@ -1,0 +1,9 @@
+{
+  "item_to_repair": "minecraft:wolf_armor",
+  "repair": [
+    {
+      "repair_material": "minecraft:armadillo_scute",
+      "amount": 4.5
+    }
+  ]
+}
