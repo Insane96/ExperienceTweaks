@@ -13,6 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 public class AnvilScreenMixin {
     @ModifyExpressionValue(method = "renderLabels", at = @At(value = "CONSTANT", args = "intValue=40"))
     private int experiencetweaks$tooExpensiveCap(int cap) {
-        return AnvilXpCost.getClientRepairCap();
+        return AnvilXpCost.getRepairCap();
     }
 }

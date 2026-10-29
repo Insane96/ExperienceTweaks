@@ -21,10 +21,14 @@ public class ExperienceTweaks {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static ILModConfig CONFIG;
+    public static ILModConfig COMMON_CONFIG;
 
     public ExperienceTweaks(IEventBus eventBus, ModContainer modContainer) {
-        CONFIG = new ILModConfig(MOD_ID, ModConfig.Type.COMMON, eventBus, ETModules::init, ExperienceTweaks.class.getClassLoader());
-        modContainer.registerConfig(ModConfig.Type.COMMON, CONFIG.spec);
+        ETModules.init(eventBus);
+        CONFIG = new ILModConfig(MOD_ID, ModConfig.Type.SERVER, eventBus, ExperienceTweaks.class.getClassLoader());
+        modContainer.registerConfig(ModConfig.Type.SERVER, CONFIG.spec);
+        COMMON_CONFIG = new ILModConfig(MOD_ID, ModConfig.Type.COMMON, eventBus, ExperienceTweaks.class.getClassLoader());
+        modContainer.registerConfig(ModConfig.Type.COMMON, COMMON_CONFIG.spec);
 
         eventBus.addListener(NetworkHandler::register);
         NeoForge.EVENT_BUS.addListener((AddReloadListenerEvent event) -> event.addListener(AnvilRepairReloadListener.INSTANCE));

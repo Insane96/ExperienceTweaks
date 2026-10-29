@@ -27,19 +27,18 @@ There is no test suite; manual in-game testing via `runClient`/`runServer` is th
 
 This is a **NeoForge mod** for Minecraft 1.21.1, currently named **"Insane's Experience Tweaks"** (mod id `experiencetweaks`, Java package `insane96mcp.experiencetweaks` — renamed from "Insane's Experience Overhaul" in 1.1.2.1; the repo folder name is a leftover from the old name). It uses **InsaneLib** (a custom library by the same author) for configuration management and the modular feature system.
 
-The mod was originally scoped to overhaul the whole enchantment system on top of experience, but that direction was dropped as too large an effort (see `changelog.md` 1.1.2.1) in favor of a separate, not-yet-released mod. This mod's focus going forward is XP tweaks plus the anvil rework; the `enchanting` module is a currently-unused stub (registered in `EOModules` but has no features).
+The mod was originally scoped to overhaul the whole enchantment system on top of experience, but that direction was dropped as too large an effort (see `changelog.md` 1.1.2.1) in favor of a separate, not-yet-released mod. This mod's focus going forward is XP tweaks plus the anvil rework. The old empty `enchanting` stub module was removed from `ETModules` in the SERVER config migration.
 
 ### Entry Point
 
-`ExperienceTweaks.java` — the `@Mod` class. Creates the InsaneLib config, initializes modules via `EOModules::init`, registers the network handler, and registers `AnvilRepairReloadListener` as a datapack reload listener.
+`ExperienceTweaks.java` — the `@Mod` class. Initializes modules via `ETModules::init`, creates the SERVER and COMMON InsaneLib configs, registers the network handler, and registers `AnvilRepairReloadListener` as a datapack reload listener.
 
 ### Module System (InsaneLib)
 
-Features are organized into modules defined in `EOModules.java`. Each module is a class extending InsaneLib's `Feature` base, with config fields annotated with `@Config` (bounds, description — supports markdown). Modules are:
+Features are organized into modules defined in `ETModules.java`. Each module is a class extending InsaneLib's `Feature` base, with config fields annotated with `@Config` (bounds, description — supports markdown). Modules are:
 
 - `experiencetweaks:experience` — `PlayerExperience` (XP-per-level formula override, death XP drop percentage, faster XP pickup) and `DroppedExperience` (global/block/mob XP multipliers, split by spawner vs. natural spawn, bonus XP for mob equipment, honey/shear/brush/XP-bottle drops).
-- `experiencetweaks:anvil` — fully implemented, not a stub. Features: `AnvilXpCost` (repair cap, cost multiplier, merge-cost-based-on-result toggle, per-enchant-level material repair cost), `AnvilMaterialRepair` (durability-merge behavior, enchantment-scaled material cost), `AnvilRenaming` (free/no-durability-loss renaming), `AnvilDegradation` (anvil break chance, repairing chipped/damaged anvils via the `experiencetweaks:repairs_anvil` item tag), and `anvilrepair/AnvilBetterRepair` (datapack-driven custom repair recipes, see below). All the actual anvil math lives in `AnvilHandler.onAnvilUpdate` (an `AnvilUpdateEvent` listener), which the other Anvil feature classes only configure.
-- `experiencetweaks:enchanting` — stub, registered but empty.
+- `experiencetweaks:anvil` — fully implemented, not a stub. Features: `AnvilXpCost` (repair cap, cost multiplier, merge-cost-based-on-result toggle, per-enchant-level material repair cost), `AnvilMaterialRepair` (durability-merge behavior, enchantment-scaled material cost), `AnvilRenaming` (free/no-durability-loss renaming), `AnvilDegradation` (anvil break chance, repairing chipped/damaged anvils via the `experiencetweaks:repairs_anvil` item tag), `anvilrepair/AnvilBetterRepair` (datapack-driven custom repair recipes, see below) and `anvilrepair/AmethystRepair` (COMMON config, toggles the `amethyst_repair` integrated data pack). All the actual anvil math lives in `AnvilHandler.onAnvilUpdate` (an `AnvilUpdateEvent` listener), which the other Anvil feature classes only configure.
 
 ### Datapack-driven Anvil Repairs
 
@@ -47,7 +46,7 @@ Features are organized into modules defined in `EOModules.java`. Each module is 
 
 ### EMI Integration
 
-`emi/EOEmiPlugin.java` (an `@EmiEntrypoint`, only active when the optional EMI mod is present — `compileOnly`/`runtimeOnly` dependency in `build.gradle`) registers the datapack-defined anvil repair recipes as EMI recipes (`EmiAnvilRepairRecipe`) and hides EMI's vanilla anvil-repair/enchanting recipe pages so they don't conflict.
+`emi/ETEmiPlugin.java` (an `@EmiEntrypoint`, only active when the optional EMI mod is present — `compileOnly`/`runtimeOnly` dependency in `build.gradle`) registers the datapack-defined anvil repair recipes as EMI recipes (`EmiAnvilRepairRecipe`) and hides EMI's vanilla anvil-repair/enchanting recipe pages so they don't conflict.
 
 ### Mixin System
 
@@ -64,11 +63,13 @@ Mixin config: `src/main/resources/experiencetweaks.mixins.json`.
 
 ### Networking
 
-`NetworkHandler` registers two server→client messages, both sent on `OnDatapackSyncEvent` (join and `/reload`): `AnvilRepairSyncMessage` syncs the datapack anvil repairs (used by EMI), and `AnvilConfigSyncMessage` syncs the server's anvil `repairCap` (the config is COMMON, so NeoForge doesn't sync it) so the client-side anvil screen (see `AnvilScreenMixin`) shows the right "Too Expensive" cap. Uses NeoForge's `CustomPacketPayload` + `StreamCodec` pattern. The mod is otherwise server-side only.
+`NetworkHandler` registers one server→client message, sent on `OnDatapackSyncEvent` (join and `/reload`): `AnvilRepairSyncMessage` syncs the datapack anvil repairs (used by EMI). Config values need no custom sync, as the main config is SERVER (synced by NeoForge/InsaneLib), e.g. the client-side anvil screen (see `AnvilScreenMixin`) reads `AnvilXpCost.getRepairCap()` directly. Uses NeoForge's `CustomPacketPayload` + `StreamCodec` pattern. The mod is otherwise server-side only.
 
 ### Configuration Pattern
 
 Config fields on Feature classes use InsaneLib's `@Config` annotation with `min`/`max` bounds and `description`. Features can be toggled via `@LoadFeature(module = ..., description = ...)`.
+
+`ETModules.init` creates the modules first (default config type SERVER), then `ExperienceTweaks` creates two `ILModConfig`s: `CONFIG` (SERVER, synced to clients, loaded only when a world/server starts — features are disabled in the main menu) and `COMMON_CONFIG`. Features go in the COMMON config with `@ConfigType(ModConfig.Type.COMMON)` only when their values are read before the SERVER config loads — e.g. `AmethystRepair`, whose `IntegratedPack` condition is evaluated when the data pack repository is built.
 
 ## Key Dependencies
 

@@ -1,3 +1,8 @@
+# 1.1.6.0
+Requires InsaneLib 2.5.0.2-alpha or newer
+* The config is now a SERVER config (`experiencetweaks-server.toml`), synced to clients, so the client always uses the server's values (e.g. XP needed per level, anvil "Too Expensive" cap, EMI anvil repairs). **Settings in the old `experiencetweaks-common.toml` are not carried over and must be set again**
+  * Amethyst Repair is now its own feature and stays in the COMMON config (`experiencetweaks-common.toml`), as the data pack is enabled before the SERVER config is loaded
+
 # 1.1.5.1
 * Added Mace (0.75 Breeze Rods), Elytra (3 Phantom Membranes) and Wolf Armor (4.5 Armadillo Scutes) better repair
 * Fixed Turtle Shell better repair not working (wrong Turtle Scute ID)
