@@ -1,3 +1,6 @@
 {
-
+  "emi.experiencetweaks.anvil_repair.per_material": "Each material repairs %s%% durability",
+  "emi.experiencetweaks.anvil_repair.materials_full": "%s material(s) for a full repair",
+  "emi.experiencetweaks.anvil_repair.max_repair": "Can only be repaired up to %s%% durability",
+  "emi.experiencetweaks.anvil_repair.materials_to_max": "%s material(s) to reach the repair limit"
 }

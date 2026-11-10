@@ -1,3 +1,7 @@
+# 1.1.6.1
+* Fixed EMI anvil repairs ignoring the repair's max repair (e.g. Netherite Shovel with a Diamond showing a full repair instead of half)
+* EMI anvil repairs now have a tooltip (on the arrow and the output) showing how much durability each material repairs, the max repair limit and how many materials are needed
+
 # 1.1.6.0
 Requires InsaneLib 2.5.0.2-alpha or newer
 * The config is now a SERVER config (`experiencetweaks-server.toml`), synced to clients, so the client always uses the server's values (e.g. XP needed per level, anvil "Too Expensive" cap, EMI anvil repairs). **Settings in the old `experiencetweaks-common.toml` are not carried over and must be set again**
